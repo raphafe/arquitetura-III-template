@@ -1,9 +1,14 @@
 import { ProductDatabase } from "../database/ProductDatabase"
+import { EditProductInputDTO, EditProductOutputDTO } from "../dtos/editToProduct.dto"
 import { BadRequestError } from "../errors/BadRequestError"
 import { NotFoundError } from "../errors/NotFoundError"
 import { Product, ProductDB } from "../models/Product"
 
 export class ProductBusiness {
+  
+  constructor(
+    private productDatabase : ProductDatabase
+  ) {}
   public createProduct = async (input: any) => {
     const { id, name, price } = input
 
@@ -27,8 +32,8 @@ export class ProductBusiness {
       throw new BadRequestError("'price' não pode ser zero ou negativo")
     }
 
-    const productDatabase = new ProductDatabase()
-    const productDBExists = await productDatabase.findProductById(id)
+    
+    const productDBExists = await this.productDatabase.findProductById(id)
 
     if (productDBExists) {
       throw new BadRequestError("'id' já existe")
@@ -48,7 +53,7 @@ export class ProductBusiness {
       created_at: newProduct.getCreatedAt()
     }
 
-    await productDatabase.insertProduct(newProductDB)
+    await this.productDatabase.insertProduct(newProductDB)
 
     const output = {
       message: "Produto registrado com sucesso",
@@ -66,8 +71,8 @@ export class ProductBusiness {
   public getProducts = async (input: any) => {
     const { q } = input
 
-    const productDatabase = new ProductDatabase()
-    const productsDB = await productDatabase.findProducts(q)
+    
+    const productsDB = await this.productDatabase.findProducts(q)
 
     const products: Product[] = productsDB.map((productDB) => new Product(
       productDB.id,
@@ -85,8 +90,8 @@ export class ProductBusiness {
 
     return output
   }
-
-  public editProduct = async (input: any) => {
+    // é opcional essa promise, já que o output tá sendo tipado embaixo
+  public editProduct = async (input: EditProductInputDTO) : Promise<EditProductOutputDTO>=> {
     const {
       idToEdit,
       id,
@@ -94,34 +99,38 @@ export class ProductBusiness {
       price
     } = input
 
-    if (id !== undefined) {
-      if (typeof id !== "string") {
-        throw new BadRequestError("'id' deve ser string")
-      }
-    }
 
-    if (name !== undefined) {
-      if (typeof name !== "string") {
-        throw new BadRequestError("'name' deve ser string")
-      }
+    //  não é necessário essas verificações, pois foram feitas no DTO
 
-      if (name.length < 2) {
-        throw new BadRequestError("'name' deve possuir pelo menos 2 caracteres")
-      }
-    }
+    
+    // if (id !== undefined) {
+    //   if (typeof id !== "string") {
+    //     throw new BadRequestError("'id' deve ser string")
+    //   }
+    // }
 
-    if (price !== undefined) {
-      if (typeof price !== "number") {
-        throw new BadRequestError("'price' deve ser number")
-      }
+    // if (name !== undefined) {
+    //   if (typeof name !== "string") {
+    //     throw new BadRequestError("'name' deve ser string")
+    //   }
 
-      if (price <= 0) {
-        throw new BadRequestError("'price' não pode ser zero ou negativo")
-      }
-    }
+    //   if (name.length < 2) {
+    //     throw new BadRequestError("'name' deve possuir pelo menos 2 caracteres")
+    //   }
+    // }
 
-    const productDatabase = new ProductDatabase()
-    const productToEditDB = await productDatabase.findProductById(idToEdit)
+    // if (price !== undefined) {
+    //   if (typeof price !== "number") {
+    //     throw new BadRequestError("'price' deve ser number")
+    //   }
+
+    //   if (price <= 0) {
+    //     throw new BadRequestError("'price' não pode ser zero ou negativo")
+    //   }
+    // }
+
+    
+    const productToEditDB = await this.productDatabase.findProductById(idToEdit)
 
     if (!productToEditDB) {
       throw new NotFoundError("'id' para editar não existe")
@@ -145,9 +154,9 @@ export class ProductBusiness {
       created_at: product.getCreatedAt()
     }
 
-    await productDatabase.updateProduct(idToEdit, updatedProductDB)
+    await this.productDatabase.updateProduct(idToEdit, updatedProductDB)
 
-    const output = {
+    const output : EditProductOutputDTO= {
       message: "Produto editado com sucesso",
       product: {
         id: product.getId(),
@@ -163,8 +172,8 @@ export class ProductBusiness {
   public deleteProduct = async (input: any) => {
     const { idToDelete } = input
 
-    const productDatabase = new ProductDatabase()
-    const productToDeleteDB = await productDatabase.findProductById(idToDelete)
+    
+    const productToDeleteDB = await this.productDatabase.findProductById(idToDelete)
 
     if (!productToDeleteDB) {
       throw new NotFoundError("'id' para deletar não existe")
@@ -177,7 +186,7 @@ export class ProductBusiness {
       productToDeleteDB.created_at
     )
 
-    await productDatabase.deleteProductById(productToDeleteDB.id)
+    await this.productDatabase.deleteProductById(productToDeleteDB.id)
 
     const output = {
       message: "Produto deletado com sucesso",
